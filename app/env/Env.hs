@@ -3,9 +3,12 @@ module Env
 , getLocalEnv
 ) where
 import System.Environment (setEnv, getEnv)
+import Database.SQLite.Simple (Connection, open, execute_, Query (Query))
+import qualified Data.Text as T
 
 data Env = Env 
     { apiKey :: String
+    , conn :: Connection
     }
 
 splitStringAt :: String -> Char -> [String]
@@ -34,6 +37,10 @@ setLocalEnv = do
 getLocalEnv :: IO Env
 getLocalEnv = do
     setLocalEnv
+    conn <- open "powerlaw-cache" 
+    execute_ conn (Query $ T.pack "CREATE TABLE IF NOT EXISTS prices (id INTEGER PRIMARY KEY, price REAL, added TEXT);")
     val <- getEnv "API_KEY"
     return Env 
-        { apiKey = val }
+        { apiKey = val 
+        , conn = conn
+        }
