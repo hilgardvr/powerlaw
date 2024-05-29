@@ -4,25 +4,30 @@ module View
 ( renderIndex 
 ) where
 import Text.Mustache (automaticCompile, Template, substitute, ToMustache (toMustache), object, (~>))
-import Pricing (PricesDTO (prices), PriceDTO (price, totalChange, annualisedChange, year))
+import Pricing (PricesDTO (prices, livePrice), PriceDTO (price, totalChange, annualisedChange, year))
 import qualified Data.Text as DT
 import Text.Printf (printf)
-import Data.Aeson (Value(String))
+import CoinGeckoClient (Price)
 
 templateDir :: FilePath
 templateDir = "./app/templates"
 
-data PricesUI = PricesUI { ps :: [PriceUI] }
+data PricesUI = PricesUI 
+    { ps :: ![PriceUI] 
+    , lp :: !String
+    }
 
 instance ToMustache PricesUI where
-    toMustache (PricesUI p) = object 
-        [ "prices" ~> p ]
+    toMustache (PricesUI p lp) = object 
+        [ "prices" ~> p 
+        , "livePrice" ~> lp
+        ]
 
 data PriceUI = PriceUI
-    { y :: Integer
-    , p :: String
-    , t :: String
-    , a :: String
+    { y :: !Integer
+    , p :: !String
+    , t :: !String
+    , a :: !String
     }
 
 instance ToMustache PriceUI where
@@ -67,4 +72,9 @@ renderIndex ps = do
                 }
             ) (prices ps)
     t <- template
-    pure $ substitute t (PricesUI uiPrices)
+    pure $ substitute t (
+        PricesUI
+            { ps = uiPrices
+            , lp = formatPrice $ livePrice ps 
+            }
+        )
