@@ -43,3 +43,4 @@ getPrice env = do
     case price of
         Nothing -> error $ "Error decoding json from: " ++ show res
         Just p -> return (usd $ bitcoin p)
+    --pure 67000

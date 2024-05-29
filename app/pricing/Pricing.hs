@@ -1,10 +1,24 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Pricing 
 ( daysFromGenesis
 , formula
 , annualised
+, PriceDTO(..)
+, PricesDTO(..)
 ) where
 
 import Data.Time (UTCTime, defaultTimeLocale, parseTimeOrError, diffUTCTime, timeToDaysAndTimeOfDay)
+import CoinGeckoClient (Price)
+
+data PricesDTO = PricesDTO { prices :: [PriceDTO] }
+
+data PriceDTO = PriceDTO
+ { year :: Integer
+ , price :: Price
+ , totalChange :: Double
+ , annualisedChange :: Double
+ }
 
 annualised :: Double -> Double -> Integer -> Double
 annualised formulaPrice exchangePrice  years =
