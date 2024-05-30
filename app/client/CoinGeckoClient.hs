@@ -2,7 +2,6 @@
 
 module CoinGeckoClient
 ( getPrice
-, Price
 ) where
 import Data.Aeson (FromJSON (parseJSON), withObject, (.:), decode)
 import Env (Env (apiKey, conn))
@@ -14,8 +13,7 @@ import qualified Data.Text as T
 import Data.Time (UTCTime, getCurrentTime, diffUTCTime)
 import Database.SQLite.Simple (query_, Query (Query), ToRow (toRow), execute, Connection, FromRow (fromRow), field)
 import Control.Exception (try, SomeException)
-
-type Price = Double
+import Pricing (Price)
 
 data BitcoinPriceResponse = BitcoinPriceResponse
     { bitcoin :: CurrencyResponse }
@@ -91,7 +89,7 @@ getCachedPrice conn = do
         Right r -> 
             case r of 
                 [] -> do
-                    print $ "got no cached prices"
+                    print $ "no cached prices"
                     pure Nothing
                 (h:_) -> do
                     now <- getCurrentTime

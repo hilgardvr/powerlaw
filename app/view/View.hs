@@ -7,7 +7,6 @@ import Text.Mustache (automaticCompile, Template, substitute, ToMustache (toMust
 import Pricing (PricesDTO (prices, livePrice), PriceDTO (price, totalChange, annualisedChange, year))
 import qualified Data.Text as DT
 import Text.Printf (printf)
-import CoinGeckoClient (Price)
 
 templateDir :: FilePath
 templateDir = "./app/templates"

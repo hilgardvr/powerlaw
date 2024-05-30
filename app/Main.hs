@@ -16,10 +16,9 @@ main = do
     env <- getLocalEnv
     scotty 3000 $ do 
         get "/" $ do
-            p <- liftIO $ getPrice env
-            now <- liftIO getCurrentTime
             let years = take 8 (0 : [ 2^i | i <- [0..] ]) 
-                ps = buildPrices p now years
-            t <- liftIO $ renderIndex ps
+            now <- liftIO $ getCurrentTime
+            p <- liftIO $ getPrice env
+            let prices = buildPrices p now years
+            t <- liftIO $ renderIndex prices
             html $ TL.fromStrict t
-

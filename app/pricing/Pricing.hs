@@ -4,15 +4,22 @@ module Pricing
 ( buildPrices
 , PriceDTO(..)
 , PricesDTO(..)
+, Price
+, Year
 ) where
 
 import Data.Time (UTCTime, defaultTimeLocale, parseTimeOrError, diffUTCTime, timeToDaysAndTimeOfDay)
-import CoinGeckoClient (Price)
+
+type Price = Double
+type Year = Integer
 
 data PricesDTO = PricesDTO 
     { prices :: ![PriceDTO] 
     , livePrice :: !Price
     }
+
+yearDays :: Integer
+yearDays = 365
 
 data PriceDTO = PriceDTO
  { year :: !Integer
@@ -20,11 +27,6 @@ data PriceDTO = PriceDTO
  , totalChange :: !Double
  , annualisedChange :: !Double
  }
-
-type Year = Integer
-
-yearDays :: Integer
-yearDays = 365
 
 annualised :: Double -> Double -> Integer -> Double
 annualised formulaPrice exchangePrice  years =
@@ -51,7 +53,6 @@ genesisBlock :: UTCTime
 genesisBlock =
     let dateSting = "2009 Jan 03"
     in parseTimeOrError True defaultTimeLocale "%Y %b %-d" dateSting :: UTCTime
-
 
 buildPrices :: Price -> UTCTime -> [Year] -> PricesDTO
 buildPrices p now ys  = 

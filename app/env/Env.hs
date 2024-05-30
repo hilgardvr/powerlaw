@@ -30,7 +30,7 @@ setLocalEnv = do
         in do
             let key = head spl
                 value = spl!!1
-            print $ "k: " ++ key ++ " v: " ++ value
+            print $ key ++ ": " ++ take 3 value
             setEnv key value
         ) ls
 
