@@ -10,10 +10,13 @@ import Web.Scotty (scotty, get, html)
 import Control.Monad.IO.Class (MonadIO(liftIO))
 import View (renderIndex)
 import qualified Data.Text.Lazy as TL 
+import GHC.IO.Handle (hSetBuffering, BufferMode (LineBuffering))
+import GHC.IO.StdHandles (stdout)
 
 main :: IO ()
 main = do
     env <- getLocalEnv
+    hSetBuffering stdout LineBuffering
     scotty 3000 $ do 
         get "/" $ do
             let years = take 8 (0 : [ 2^i | i <- [0..] ]) 
