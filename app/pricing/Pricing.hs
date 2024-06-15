@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Pricing 
+module Pricing
 ( buildPrices
 , PriceDTO(..)
 , PricesDTO(..)
@@ -13,9 +13,10 @@ import Data.Time (UTCTime, defaultTimeLocale, parseTimeOrError, diffUTCTime, tim
 type Price = Double
 type Year = Integer
 
-data PricesDTO = PricesDTO 
-    { prices :: ![PriceDTO] 
+data PricesDTO = PricesDTO
+    { prices :: ![PriceDTO]
     , livePrice :: !Price
+    , modelPrice :: !PriceDTO
     }
 
 yearDays :: Integer
@@ -57,6 +58,13 @@ genesisBlock =
 buildPrices :: Price -> UTCTime -> [Year] -> PricesDTO
 buildPrices p now ys  = 
     let daysNow = daysFromGenesis now
+        currentFormulaPrice = formula daysNow
+        modelPrice = PriceDTO
+            { price = currentFormulaPrice
+            , year = 0
+            , totalChange = percentageChange currentFormulaPrice p
+            , annualisedChange = annualised currentFormulaPrice p 0
+            }
         ps' = map (\y -> 
             let fp = formula (daysNow + y * yearDays)
             in PriceDTO 
@@ -69,4 +77,5 @@ buildPrices p now ys  =
     in PricesDTO 
             { prices = ps' 
             , livePrice = p
+            , modelPrice = modelPrice
             }

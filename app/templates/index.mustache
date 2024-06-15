@@ -5,11 +5,13 @@
     <body>
         <h1>Power Law</h1>
         <h3>Current Price: ${{livePrice}}</h3>
+        <h3>Model Price: ${{modelPrice.price}}</h3>
+        <h4>Current Under/(Over)%: {{modelPrice.totalChange}}%</h4>
         <table style="text-align:right; border: 1px solid black">
             <tr>
                 <th style="border: 1px solid black">Years From Now</th>
                 <th style="border: 1px solid black">Model Price</th>
-                <th style="border: 1px solid black">Total Change %</th>
+                <th style="border: 1px solid black">Total Gain %</th>
                 <th style="border: 1px solid black">Annualised Change %</th>
             </tr>
         {{#prices}}

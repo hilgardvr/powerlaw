@@ -19,7 +19,7 @@ main = do
     hSetBuffering stdout LineBuffering
     scotty 3000 $ do 
         get "/" $ do
-            let years = take 8 (0 : [ 2^i | i <- [0..] ]) 
+            let years = take 8 ([ 2^i | i <- [0..] ])
             now <- liftIO $ getCurrentTime
             p <- liftIO $ getPrice env
             let prices = buildPrices p now years

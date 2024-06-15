@@ -1,25 +1,27 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module View 
-( renderIndex 
+module View
+( renderIndex
 ) where
 import Text.Mustache (automaticCompile, Template, substitute, ToMustache (toMustache), object, (~>))
-import Pricing (PricesDTO (prices, livePrice), PriceDTO (price, totalChange, annualisedChange, year))
+import Pricing (PricesDTO (prices, livePrice, modelPrice), PriceDTO (price, totalChange, annualisedChange, year))
 import qualified Data.Text as DT
 import Text.Printf (printf)
 
 templateDir :: FilePath
 templateDir = "./app/templates"
 
-data PricesUI = PricesUI 
-    { ps :: ![PriceUI] 
+data PricesUI = PricesUI
+    { ps :: ![PriceUI]
     , lp :: !String
+    , mp :: !PriceUI
     }
 
 instance ToMustache PricesUI where
-    toMustache (PricesUI p lp) = object 
-        [ "prices" ~> p 
+    toMustache (PricesUI p lp mp) = object 
+        [ "prices" ~> p
         , "livePrice" ~> lp
+        , "modelPrice" ~> mp
         ]
 
 data PriceUI = PriceUI
@@ -60,10 +62,10 @@ formatPrice d =
 
 renderIndex :: PricesDTO -> IO DT.Text
 renderIndex ps = do
-    let 
+    let
         uiPrices :: [PriceUI]
-        uiPrices = map (\e -> 
-            PriceUI 
+        uiPrices = map (\e ->
+            PriceUI
                 { y = year e
                 , p = formatPrice $ price e
                 , t = formatPrice $ totalChange e
@@ -74,6 +76,12 @@ renderIndex ps = do
     pure $ substitute t (
         PricesUI
             { ps = uiPrices
-            , lp = formatPrice $ livePrice ps 
+            , lp = formatPrice $ livePrice ps
+            , mp = PriceUI
+                   { y = year (modelPrice ps)
+                   , p = formatPrice $ price (modelPrice ps)
+                   , t = formatPrice $ totalChange (modelPrice ps)
+                   , a = formatPrice $ annualisedChange (modelPrice ps)
+                   }
             }
         )
