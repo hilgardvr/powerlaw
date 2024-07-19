@@ -59,6 +59,7 @@ getPrice env = do
                         ]
                     }
             res <- httpBS req
+            print $ "response: " ++ show res
             let price = (Data.Aeson.decode $ (BSL.fromStrict $ responseBody res)) :: (Maybe BitcoinPriceResponse)
             case price of
                 Nothing -> error $ "Error decoding json from: " ++ show res

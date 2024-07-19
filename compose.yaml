@@ -1,0 +1,10 @@
+services:
+  majorplayer-svc:
+    build: .
+    depends_on:
+      majorplayer-db:
+        condition: service_started
+    ports:
+      - "3000:3000"
+    environment:
+      API_KEY: ${API_KEY}
