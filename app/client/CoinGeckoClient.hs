@@ -1,21 +1,22 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module CoinGeckoClient
-( getPrice
-, Price
+( CoinGeckoClient(..)
 ) where
 import Data.Aeson (FromJSON (parseJSON), withObject, (.:), decode)
 import Env (Env (apiKey, conn))
 import Network.HTTP.Client.Conduit (Request(method, requestHeaders), parseRequest, Response (responseBody))
 import qualified Data.String as DS
-import Network.HTTP.Simple (httpBS)
+import Network.HTTP.Simple (httpBS, getResponseStatusCode, getResponseBody)
 import qualified Data.ByteString.Lazy as BSL
-import qualified Data.Text as T
-import Data.Time (UTCTime, getCurrentTime, diffUTCTime)
-import Database.SQLite.Simple (query_, Query (Query), ToRow (toRow), execute, Connection, FromRow (fromRow), field)
-import Control.Exception (try, SomeException)
 import Pricing (Price)
+import PricingClient (PricingClient (getBTCPrice))
+import Repo (getCachedPrice, cachePrice)
 
+newtype CoinGeckoClient = CoinGeckoClient { env :: Env }
+
+instance PricingClient CoinGeckoClient where
+    getBTCPrice (CoinGeckoClient env) = getPrice env
 
 data BitcoinPriceResponse = BitcoinPriceResponse
     { bitcoin :: CurrencyResponse }
@@ -31,19 +32,7 @@ instance FromJSON CurrencyResponse where
     parseJSON = withObject "CurrencyResponse" $ \v -> CurrencyResponse
         <$> v .: "usd"
 
-data CachedPrice = CachedPrice
-    { id :: !(Maybe Integer)
-    , price :: !Price
-    , added :: !UTCTime
-    } deriving Show
-
-instance FromRow CachedPrice where
-    fromRow = CachedPrice <$> field <*> field <*> field
-
-instance ToRow CachedPrice where
-    toRow (CachedPrice i p a) = toRow (p, a)
-
-getPrice :: Env -> IO Price
+getPrice :: Env -> IO (Either String Price)
 getPrice env = do
     cachedPrice <- getCachedPrice (conn env)
     putStrLn $ "got cachedPrice of: " ++ show cachedPrice
@@ -59,45 +48,15 @@ getPrice env = do
                         ]
                     }
             res <- httpBS req
-            print $ "response: " ++ show res
-            let price = (Data.Aeson.decode $ (BSL.fromStrict $ responseBody res)) :: (Maybe BitcoinPriceResponse)
-            case price of
-                Nothing -> error $ "Error decoding json from: " ++ show res
-                Just p -> do
-                    cachePrice (conn env) (usd $ bitcoin p)
-                    return (usd $ bitcoin p)
-        Just c -> pure c
+            if getResponseStatusCode res == 200 
+            then do
+                print $ "response: " ++ show res
+                let price = Data.Aeson.decode (BSL.fromStrict $ responseBody res) :: (Maybe BitcoinPriceResponse)
+                case price of
+                    Nothing -> error $ "Error decoding json from: " ++ show res
+                    Just p -> do
+                        cachePrice (conn env) (usd $ bitcoin p)
+                        return $ Right (usd $ bitcoin p)
+            else return $ Left $ "Failed to get response - status " ++ show (getResponseStatusCode res) ++ " body: " ++ show (getResponseBody res)
+        Just c -> pure $ Right c
 
-cachePrice :: Connection -> Price -> IO ()
-cachePrice conn p = do
-    putStrLn $ "trying to insert price into cache" ++ show p
-    now <- getCurrentTime
-    putStrLn $ "now" ++ show now
-    either <- try $ execute conn (Query $ T.pack "insert into prices (price, added) values (?,?)") (CachedPrice Nothing p now) :: IO (Either SomeException ())
-    case either of
-        Left e -> putStrLn $ "error fetching from db: " ++ show e
-        Right r -> putStrLn $ "done inserting  price into cache" ++ show r
-
-getCachedPrice :: Connection -> IO (Maybe Price)
-getCachedPrice conn = do
-    putStrLn "trying to get price into cache"
-    let q = Query (T.pack "select id, price, added from prices order by id desc limit 1;")
-    putStrLn $ "query: " ++ show q
-    res <- try $  query_ conn q :: IO (Either SomeException [CachedPrice])
-    putStrLn $ "res: " ++ show res
-    case res of
-        Left e -> do
-            putStrLn $ "error fetching from db: " ++ show e
-            pure Nothing
-        Right r -> 
-            case r of 
-                [] -> do
-                    putStrLn $ "no cached prices"
-                    pure Nothing
-                (h:_) -> do
-                    now <- getCurrentTime
-                    let diff = diffUTCTime now (added h) 
-                    putStrLn $ "cached timing diff seconds: " ++ show diff
-                    if diff > (15 * 60)
-                    then pure Nothing 
-                    else pure $ Just $ price h
