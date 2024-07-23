@@ -8,6 +8,7 @@ import qualified Data.Text as T
 
 data Env = Env 
     { apiKey :: String
+    , cmcApiKey :: String
     , conn :: Connection
     }
 
@@ -39,8 +40,10 @@ getLocalEnv = do
     setLocalEnv
     conn <- open "powerlaw-cache" 
     execute_ conn (Query $ T.pack "CREATE TABLE IF NOT EXISTS prices (id INTEGER PRIMARY KEY, price REAL, added TEXT);")
-    val <- getEnv "API_KEY"
+    cgKey <- getEnv "API_KEY"
+    cmcKey <- getEnv "CMC_API_KEY"
     return Env 
-        { apiKey = val 
+        { apiKey = cgKey 
         , conn = conn
+        , cmcApiKey = cmcKey
         }

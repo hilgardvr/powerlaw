@@ -34,29 +34,25 @@ instance FromJSON CurrencyResponse where
 
 getPrice :: Env -> IO (Either String Price)
 getPrice env = do
-    cachedPrice <- getCachedPrice (conn env)
-    putStrLn $ "got cachedPrice of: " ++ show cachedPrice
-    case cachedPrice of
-        Nothing -> do
-            putStrLn "hitting api"
-            initReq <- parseRequest  "https://coingecko.p.rapidapi.com/simple/price?vs_currencies=usd&ids=bitcoin" 
-            let req = initReq
-                    { method = "GET"
-                    , requestHeaders = 
-                        [ ("X-RapidAPI-Key", DS.fromString (apiKey env))
-                        , ("X-RapidAPI-Host", "coingecko.p.rapidapi.com")
-                        ]
-                    }
-            res <- httpBS req
-            if getResponseStatusCode res == 200 
-            then do
-                print $ "response: " ++ show res
-                let price = Data.Aeson.decode (BSL.fromStrict $ responseBody res) :: (Maybe BitcoinPriceResponse)
-                case price of
-                    Nothing -> error $ "Error decoding json from: " ++ show res
-                    Just p -> do
-                        cachePrice (conn env) (usd $ bitcoin p)
-                        return $ Right (usd $ bitcoin p)
-            else return $ Left $ "Failed to get response - status " ++ show (getResponseStatusCode res) ++ " body: " ++ show (getResponseBody res)
-        Just c -> pure $ Right c
+    putStrLn "hitting coingecko api"
+    initReq <- parseRequest  "https://coingecko.p.rapidapi.com/simple/price?vs_currencies=usd&ids=bitcoin" 
+    let req = initReq
+            { method = "GET"
+            , requestHeaders = 
+                [ ("X-RapidAPI-Key", DS.fromString (apiKey env))
+                , ("X-RapidAPI-Host", "coingecko.p.rapidapi.com")
+                ]
+            }
+    res <- httpBS req
+    if getResponseStatusCode res == 200 
+    then do
+        let price = Data.Aeson.decode (BSL.fromStrict $ responseBody res) :: (Maybe BitcoinPriceResponse)
+        case price of
+            Nothing -> do
+                print $ "Error decoding json from: " ++ show res
+                error $ "Error decoding json from: " ++ show res
+            Just p -> do
+                cachePrice (conn env) (usd $ bitcoin p)
+                return $ Right (usd $ bitcoin p)
+    else return $ Left $ "Failed to get response - status " ++ show (getResponseStatusCode res) ++ " body: " ++ show (getResponseBody res)
 

@@ -11,14 +11,14 @@ import View (renderIndex)
 import qualified Data.Text.Lazy as TL
 import GHC.IO.Handle (hSetBuffering, BufferMode (LineBuffering))
 import GHC.IO.StdHandles (stdout)
-import CoinGeckoClient (CoinGeckoClient(..))
+import CoinMarketCapClient (CoinMarketCapClient(..))
 import PricingClient (PricingClient(getBTCPrice))
-import Repo (getCachedPrice)
+import Repo (getCachedPrice, cachePrice)
 
 main :: IO ()
 main = do
     env <- getLocalEnv
-    let pricingClient = CoinGeckoClient { env = env }
+    let pricingClient = CoinMarketCapClient { env = env }
     hSetBuffering stdout LineBuffering
     scotty 3000 $ do
         get "/" $ do
@@ -30,7 +30,9 @@ main = do
                     clientPrice <- liftIO $ getBTCPrice pricingClient
                     case clientPrice of
                         Left err -> error err
-                        Right p -> return p
+                        Right p -> do
+                            liftIO $ cachePrice (conn env) p
+                            return p
                 Just p -> return p
             let prices = buildPrices price now years
             t <- liftIO $ renderIndex prices
